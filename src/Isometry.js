@@ -1,6 +1,60 @@
 // GEOMETRY
 import Color from 'color/index'
 
+class ColorRgba {
+    r;
+    g;
+    b;
+    a;
+
+    constructor(color) {
+        if (color instanceof ColorRgba || (color.r !== undefined && color.a !== undefined)) {
+            this.r = color.r
+            this.g = color.g
+            this.b = color.b
+            this.a = color.a
+        } else {
+            let c = Color(color)
+            this.r = Math.floor(c.red())
+            this.g = Math.floor(c.green())
+            this.b = Math.floor(c.blue())
+            this.a = Math.floor(c.valpha * 255)
+        }
+    }
+
+    static create(r, g, b, a) {
+        return new this({r: r, g: g, b: b, a: a})
+    }
+
+    static equals(colorA, colorB) {
+        return colorA.r === colorB.r && colorA.g === colorB.g
+            && colorA.b === colorB.b && colorA.a === colorB.a;
+    }
+
+
+    darken(value) {
+        return new ColorRgba(Color.rgb(this.r, this.g, this.b).alpha(this.a / 255).darken(value))
+    }
+
+    lighten(value) {
+        return new ColorRgba(Color.rgb(this.r, this.g, this.b).alpha(this.a / 255).lighten(value))
+    }
+
+    saturate(value) {
+        return new ColorRgba(Color.rgb(this.r, this.g, this.b).alpha(this.a / 255).saturate(value))
+    }
+
+    desaturate(value) {
+        return new ColorRgba(Color.rgb(this.r, this.g, this.b).alpha(this.a / 255).desaturate(value))
+    }
+
+    toString() {
+        return `rgba(${this.r},${this.g},${this.b},${this.a})`
+    }
+}
+
+const TransparentColor = ColorRgba.create(0, 0, 0, 0)
+
 class Vector2 {
     x;
     y;
@@ -134,30 +188,35 @@ class PolyhedronColorPalette {
     border;
 
     /**
-     * @param {Color|string} base
-     * @param {Color|string} dark
-     * @param {Color|string} darker
-     * @param {Color|string} light
-     * @param {Color|string} lighter
-     * @param {Color|string} border
+     * @param {ColorRgba} base
+     * @param {ColorRgba} dark
+     * @param {ColorRgba} darker
+     * @param {ColorRgba} light
+     * @param {ColorRgba} lighter
+     * @param {ColorRgba} border
      */
     constructor(base, dark, darker, light, lighter, border) {
-        this.base = Color(base);
-        this.dark = Color(dark);
-        this.darker = Color(darker);
-        this.light = Color(light);
-        this.lighter = Color(lighter);
-        this.border = Color(border);
+        this.base = new ColorRgba(base);
+        this.dark = new ColorRgba(dark);
+        this.darker = new ColorRgba(darker);
+        this.light = new ColorRgba(light);
+        this.lighter = new ColorRgba(lighter);
+        this.border = new ColorRgba(border);
     }
 
+    /**
+     * @param {ColorRgba|string} baseColor
+     * @return {PolyhedronColorPalette}
+     */
     static generate(baseColor) {
+        let base = new ColorRgba(baseColor)
         return new this(
-            Color(baseColor),
-            Color(baseColor).saturate(0.3).darken(0.1),
-            Color(baseColor).saturate(0.3).darken(0.4),
-            Color(baseColor).desaturate(0.2).lighten(0.2),
-            Color(baseColor).desaturate(0.4).lighten(0.4),
-            Color('#000000')
+            base,
+            base.saturate(0.3).darken(0.1),
+            base.saturate(0.3).darken(0.4),
+            base.desaturate(0.2).lighten(0.2),
+            base.desaturate(0.4).lighten(0.4),
+            new ColorRgba('#000000')
         )
     }
 }
@@ -193,7 +252,7 @@ class PolyhedronFactoryOptions {
      * @param {number} tileWidth
      * @param {number} tileHeight
      * @param {number} strokeWidth
-     * @param {Color|string} baseColor
+     * @param {ColorRgba|string} baseColor
      * @returns {PolyhedronFactoryOptions}
      */
     static createQuickOptions(posX, posY, sizeX, sizeZ, sizeY, tileWidth, tileHeight, strokeWidth, baseColor) {
@@ -230,7 +289,7 @@ class PolyhedronFactory {
         v.topLeft = new Vector2(pos.x, pos.y + half_tile_h)
         v.topUp = new Vector2(pos.x + half_tile_w, pos.y)
         v.topRight = new Vector2(pos.x + tile_w, v.topLeft.y)
-        v.topDown = new Vector2(v.topUp.x, pos.x + tile_h)
+        v.topDown = new Vector2(v.topUp.x, pos.y + tile_h)
         v.bottomLeft = new Vector2(v.topLeft.x, v.topLeft.y)
         v.bottomDown = new Vector2(v.topUp.x, v.topDown.y)
         v.bottomRight = new Vector2(v.topRight.x, v.topRight.y)
@@ -261,12 +320,12 @@ class PolyhedronFactory {
         let bw = options.strokeWidth
 
 // top polygon
-        ed.topLeftTopUp = new Edge(v.topLeft, v.topUp, options.colors.borderOuter, bw)
-        ed.topUpTopRight = new Edge(v.topUp, v.topRight, options.colors.borderOuter, bw)
-        ed.topRightTopDown = new Edge(v.topRight, v.topDown, options.colors.borderInner, bw)
-        ed.topDownTopLeft = new Edge(v.topDown, v.topLeft, options.colors.borderInner, bw)
+        ed.topLeftTopUp = new Edge(v.topLeft, v.topUp, options.colors.border, bw)
+        ed.topUpTopRight = new Edge(v.topUp, v.topRight, options.colors.border, bw)
+        ed.topRightTopDown = new Edge(v.topRight, v.topDown, options.colors.light, bw)
+        ed.topDownTopLeft = new Edge(v.topDown, v.topLeft, options.colors.light, bw)
         let topPoly = new Surface(
-            options.colors.topSide,
+            options.colors.base,
             ed.topLeftTopUp,
             ed.topUpTopRight,
             ed.topRightTopDown,
@@ -276,12 +335,11 @@ class PolyhedronFactory {
         topPoly.center.y = Math.floor((v.topUp.y + v.topDown.y) / 2)
 
 // left polygon
-        ed.topLeftBottomLeft = new Edge(v.topLeft, v.bottomLeft, options.colors.borderOuter, bw)
-        ed.topDownBottomDown = new Edge(v.topDown, v.bottomDown, options.colors.borderInner, bw)
-        ed.bottomLeftBottomDown = new Edge(v.bottomLeft, v.bottomDown, options.colors.borderOuter, bw)
+        ed.topLeftBottomLeft = new Edge(v.topLeft, v.bottomLeft, options.colors.border, bw)
+        ed.topDownBottomDown = new Edge(v.topDown, v.bottomDown, options.colors.light, bw)
+        ed.bottomLeftBottomDown = new Edge(v.bottomLeft, v.bottomDown, options.colors.border, bw)
         let leftPoly = new Surface(
-            options.colors.leftSide,
-
+            options.colors.dark,
             ed.topDownTopLeft,
             ed.topLeftBottomLeft,
             ed.topDownBottomDown,
@@ -290,11 +348,10 @@ class PolyhedronFactory {
         leftPoly.center.x = Math.floor((v.topLeft.x + v.topDown.x) / 2)
         leftPoly.center.y = Math.floor(((v.topLeft.y + v.bottomLeft.y) / 2) + (size_y / 2))
 
-        ed.bottomRightBottomDown = new Edge(v.bottomRight, v.bottomDown, options.colors.borderOuter, bw)
-        ed.topRightBottomRight = new Edge(v.topRight, v.bottomRight, options.colors.borderOuter, bw)
+        ed.bottomRightBottomDown = new Edge(v.bottomRight, v.bottomDown, options.colors.border, bw)
+        ed.topRightBottomRight = new Edge(v.topRight, v.bottomRight, options.colors.border, bw)
         let rightPoly = new Surface(
-            options.colors.rightSide,
-
+            options.colors.darker,
             ed.topRightTopDown,
             ed.topDownBottomDown,
             ed.topRightBottomRight,
@@ -329,16 +386,23 @@ class Painter {
     constructor(canvas) {
         this.#canvas = canvas
         this.#ctx = this.#canvas.getContext('2d')
-        this.#imageData = this.#ctx.getImageData(0, 0, this.getWidth(), this.getHeight())
+        this.#imageData = this.#ctx.getImageData(
+            0, 0, this.#canvas.width, this.#canvas.height
+        )
+    }
+
+    getColorIndex(x, y) {
+        //  // 4*y*canvas.width  +  4*x + 3
+        return ((y * this.#imageData.width * 4) + (x * 4))
     }
 
     /**
      * @param {number} x
      * @param {number} y
-     * @return {Color}
+     * @return {ColorRgba}
      */
     getColorAt(x, y) {
-        const red = y * (this.#imageData.width * 4) + x * 4;
+        const red = this.getColorIndex(x, y);
         const [redIndex, greenIndex, blueIndex, alphaIndex] = [red, red + 1, red + 2, red + 3];
         const c = {
             r: this.#imageData.data[redIndex],
@@ -350,10 +414,9 @@ class Painter {
         if (c.r === undefined || c.g === undefined || c.b === undefined || c.a === undefined) {
             let err = "Pixel does not exist at " + new Vector2(x, y)
             console.error(err, c)
-            throw Error(err)
+            return null
         }
-
-        return Color.rgb(c.r, c.g, c.b).alpha(c.a / 255)
+        return new ColorRgba(c)
     }
 
     /**
@@ -366,33 +429,24 @@ class Painter {
     }
 
     /**
-     * @param {number} x
-     * @param {number} y
-     * @return {boolean}
-     */
-    isColorTransparentAt(x, y) {
-        return this.getColorAt(x, y).a === 0
-    }
-
-    /**
      * @return {number}
      */
     getWidth() {
-        return this.#canvas.width
+        return this.#imageData.width
     }
 
     /**
      * @return {number}
      */
     getHeight() {
-        return this.#canvas.height
+        return this.#imageData.height
     }
 
     /**
      * @return {Area}
      */
     getSize() {
-        return new Area(this.#canvas.width, this.#canvas.height)
+        return new Area(this.#imageData.width, this.#imageData.height)
     }
 
     clearCanvas() {
@@ -403,30 +457,22 @@ class Painter {
     /**
      * @param {number} x
      * @param {number} y
-     * @param {Color} color
+     * @param {ColorRgba} color
      * @return {boolean}
      */
     setColorToCanvasPixel(x, y, color) {
-        color = Color(color)
-        let dx = Math.floor(x * this.getWidth());
-        let dy = Math.floor(y * this.getHeight());
-        let r = Math.floor(color.r * 256);
-        let g = Math.floor(color.g * 256);
-        let b = Math.floor(color.b * 256);
-        let a = Math.floor(color.a * 256);
-
-        let offset = (dy * this.#imageData.width + dx) * 4;
-        this.#imageData.data[offset] = r;
-        this.#imageData.data[offset + 1] = g;
-        this.#imageData.data[offset + 2] = b;
-        this.#imageData.data[offset + 3] = a;
+        let offset = this.getColorIndex(x, y);
+        this.#imageData.data[offset] = Math.floor(color.r);
+        this.#imageData.data[offset + 1] = Math.floor(color.g);
+        this.#imageData.data[offset + 2] = Math.floor(color.b);
+        this.#imageData.data[offset + 3] = Math.floor(color.a);
     }
 
     // @param {CanvasImageData} imageData
     /**
      * @param {number} x
      * @param {number} y
-     * @param {Color} color
+     * @param {ColorRgba} color
      * @param {int} strokeWidth
      * @return {boolean}
      */
@@ -486,18 +532,96 @@ class Painter {
     }
 
     /**
+     * Forest Fire Algorithm
+     * https://en.wikipedia.org/wiki/Flood_fill#The_algorithm
+     *
+     * @param {number} x
+     * @param {number} y
+     * @param {ColorRgba} color Replacement color
+     */
+    putFloodFillQ(x, y, color) {
+        let targetColor = TransparentColor
+        if (this.isOutOfBounds(x, y) || ColorRgba.equals(color, targetColor)) {
+            return
+        }
+        let pixelColor = this.getColorAt(x, y)
+        if (pixelColor !== null && ColorRgba.equals(pixelColor, targetColor) === false) {
+            return
+        }
+
+        this.setColorToCanvasPixel(x, y, color)
+
+        /**
+         * @type {Vector2[]}
+         */
+        let queue = []
+        queue.push(new Vector2(x, y))
+
+        while (queue.length > 0) {
+            let node = queue.shift();
+            [
+                new Vector2(node.x - 1, node.y),
+                new Vector2(node.x + 1, node.y),
+                new Vector2(node.x, node.y + 1),
+                new Vector2(node.x, node.y - 1)
+            ].forEach((vec2) => {
+                pixelColor = this.getColorAt(vec2.x, vec2.y)
+                if (pixelColor !== null && ColorRgba.equals(pixelColor, targetColor)) {
+                    this.setColorToCanvasPixel(vec2.x, vec2.y, color)
+                    queue.push(new Vector2(vec2.x, vec2.y))
+                }
+            });
+        }
+    }
+
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @param {ColorRgba|string} color
+     */
+    putFloodFill2(x, y, color) {
+        if (Math.floor(color.a) === 0) {
+            console.warn("Fill a transparent")
+            return;
+        }
+        let pixelData = this.#imageData
+        if (x < 0 || y < 0 || x > pixelData.width || y > pixelData.height) {
+            console.warn("Fill out of bounds")
+            return;
+        }
+        let i = (y * pixelData.width + x) * 4;
+        let pixels = pixelData.data;
+
+        if (pixels[i + 3] === 0) { // fill if transparent
+            pixels[i] = color.r;
+            pixels[i + 1] = color.g;
+            pixels[i + 2] = color.b;
+            pixels[i + 3] = color.a;
+            this.putFloodFill2(x - 1, y, color);
+            this.putFloodFill2(x + 1, y, color);
+            this.putFloodFill2(x, y - 1, color);
+            this.putFloodFill2(x, y + 1, color);
+        }
+    }
+
+    /**
      * @param {Vector2} pos
-     * @param {Color|string} color
+     * @param {ColorRgba|string} color
      */
     putFloodFill(pos, color) {
-        if (this.isOutOfBounds(pos.x, pos.y) || !this.isColorTransparentAt(pos.x, pos.y)) {
+        if (this.isOutOfBounds(pos.x, pos.y)) {
+            console.error(`Pixel out of bounds before filling: ${pos.x},${pos.y}`)
+            return
+        }
+        if (!this.isColorTransparentAt(pos.x, pos.y)) {
+            console.error(`Pixel out of bounds before filling 2: ${pos.x},${pos.y}`)
             return
         }
 
         // this pixel is transparent, colorize it
         let ok = this.putPixel(pos.x, pos.y, color, 1)
         if (ok === false) {
-            console.error(`Pixel out of bounds when filling: ${pos.x},${pos.y}`)
+            console.error(`Pixel out of bounds after filling: ${pos.x},${pos.y}`)
             return
         }
 
@@ -530,7 +654,8 @@ class Painter {
             this.putSurface(poly.surfaces[i])
         }
         for (let i in poly.surfaces) {
-            this.putFloodFill(poly.surfaces[i].center, poly.surfaces[i].fillColor)
+            let center = poly.surfaces[i].center
+            this.putFloodFillQ(center.x, center.y, poly.surfaces[i].fillColor)
         }
     }
 

@@ -11,17 +11,26 @@ class App extends React.Component {
 
     componentDidMount() {
         let painter = new Painter(this.canvas.current)
+        window.IsometricTool = {
+            Painter: Painter,
+            Factory: PolyhedronFactory,
+            Options: PolyhedronFactoryOptions,
+            painterInstance: painter
+        }
         let poly = PolyhedronFactory.createCube(
             PolyhedronFactoryOptions.createQuickOptions(
                 Math.floor(painter.getWidth() / 3), Math.floor(painter.getHeight() / 3),
-                20, 20, 20,
+                1, 1, 120,
                 64, 32,
                 1, '#228bcb'
             )
         )
         console.log(poly)
+        painter.clearCanvas()
         painter.putPolyhedron(poly)
         painter.update()
+        document.getElementById("outp").innerText =
+            painter.getWidth() + "," + painter.getHeight()
     }
 
     render() {
@@ -30,8 +39,9 @@ class App extends React.Component {
                 Isometric Tool
                 <br/>
                 <div className="isometry">
-                    <canvas ref={this.canvas} width="640" height="640"/>
+                    <canvas ref={this.canvas} width="300" height="300"/>
                 </div>
+                <div id="outp"></div>
             </header>
         </div>
     }

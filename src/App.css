@@ -40,3 +40,12 @@
 .isometry {
     background: rgba(255, 255, 255, 0.5);
 }
+
+canvas {
+    display: block;
+    position: relative;
+    width: auto;
+    height:auto;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
