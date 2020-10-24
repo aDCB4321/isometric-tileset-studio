@@ -224,21 +224,21 @@ class PolyhedronColorPalette {
 class PolyhedronFactoryOptions {
     position;
     size;
-    tileSize;
+    angle;
     strokeWidth;
     colors;
 
     /**
      * @param {Vector2} position
      * @param {Vector3} size
-     * @param {Area} tileSize
+     * @param {number} angle
      * @param {number} strokeWidth
      * @param {PolyhedronColorPalette} colors
      */
-    constructor(position, size, tileSize, strokeWidth, colors) {
+    constructor(position, size, angle, strokeWidth, colors) {
         this.position = position;
         this.size = size;
-        this.tileSize = tileSize;
+        this.angle = angle;
         this.strokeWidth = strokeWidth;
         this.colors = colors;
     }
@@ -249,17 +249,16 @@ class PolyhedronFactoryOptions {
      * @param {number} sizeX
      * @param {number} sizeZ
      * @param {number} sizeY
-     * @param {number} tileWidth
-     * @param {number} tileHeight
+     * @param {number} angle
      * @param {number} strokeWidth
      * @param {ColorRgba|string} baseColor
      * @returns {PolyhedronFactoryOptions}
      */
-    static createQuickOptions(posX, posY, sizeX, sizeZ, sizeY, tileWidth, tileHeight, strokeWidth, baseColor) {
+    static createQuickOptions(posX, posY, sizeX, sizeZ, sizeY, angle, strokeWidth, baseColor) {
         return new this(
             new Vector2(posX, posY),
             new Vector3(sizeX, sizeY, sizeZ),
-            new Area(tileWidth, tileHeight),
+            angle,
             strokeWidth,
             PolyhedronColorPalette.generate(baseColor)
         )
@@ -272,24 +271,22 @@ class PolyhedronFactory {
      * @return Polyhedron
      */
     static createCube(options) {
-        let tile_w = options.tileSize.width - options.strokeWidth // keeps borders inside the grid
-        let tile_h = options.tileSize.height - options.strokeWidth
-        let half_tile_w = Math.floor(tile_w / 2)
-        let half_tile_h = Math.floor(tile_h / 2)
-        let tile_aspect = tile_w / tile_h
-        let size_x = options.size.x // - half_tile_w
-        let size_z = options.size.z // - half_tile_w
+        let rotation = (options.angle + 100 - options.strokeWidth) / (100 - options.strokeWidth)
+        let size_x = options.size.x
+        let size_z = options.size.z
         let size_y = options.size.y
-        let size_yx = Math.floor(size_x / tile_aspect)
-        let size_yz = Math.floor(size_z / tile_aspect)
+        let size_yx = Math.floor(size_x / rotation)
+        let size_yz = Math.floor(size_z / rotation)
         let pos = options.position
+        let min_w = options.strokeWidth * 2
+        let min_h = options.strokeWidth * 2
 
 // CALC VERTICES
         let v = {}
-        v.topLeft = new Vector2(pos.x, pos.y + half_tile_h)
-        v.topUp = new Vector2(pos.x + half_tile_w, pos.y)
-        v.topRight = new Vector2(pos.x + tile_w, v.topLeft.y)
-        v.topDown = new Vector2(v.topUp.x, pos.y + tile_h)
+        v.topLeft = new Vector2(pos.x, pos.y + min_h)
+        v.topUp = new Vector2(pos.x + min_w, pos.y)
+        v.topRight = new Vector2(pos.x + (min_w * 2), v.topLeft.y)
+        v.topDown = new Vector2(v.topUp.x, pos.y + (min_h * 2))
         v.bottomLeft = new Vector2(v.topLeft.x, v.topLeft.y)
         v.bottomDown = new Vector2(v.topUp.x, v.topDown.y)
         v.bottomRight = new Vector2(v.topRight.x, v.topRight.y)
@@ -494,40 +491,31 @@ class Painter {
     }
 
     /**
+     * @see http://rosettacode.org/wiki/Bitmap/Bresenham's_line_algorithm#JavaScript
      * @param {Edge} edge
      */
     putEdge(edge) {
-        let x1 = edge.from.x
-        let y1 = edge.from.y
-        let x2 = edge.to.x
-        let y2 = edge.to.y
+        let x0 = edge.from.x
+        let y0 = edge.from.y
+        let x1 = edge.to.x
+        let y1 = edge.to.y
 
-        let x, y, dx, dy, step, i;
-
-        dx = (x2 - x1);
-        dy = (y2 - y1);
-
-        if (Math.abs(dx) >= Math.abs(dy)) {
-            step = Math.abs(dx) // * edge.strokeWidth
-        } else {
-            step = Math.abs(dy) // * edge.strokeWidth
-        }
-
-        dx = dx / step;
-        dy = dy / step;
-        x = x1;
-        y = y1;
-        i = 1;
-
-        while (i <= step) {
-            let ok = this.putPixel(Math.floor(x), Math.floor(y), edge.strokeColor, edge.strokeWidth)
-            if (ok === false) {
-                console.error(`Pixel out of bounds when drawing a line: ${x},${y}`)
-                break
+        let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+        let dy = Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+        let err = (dx > dy ? dx : -dy) / 2;
+        // TODO: support stroke width
+        while (true) {
+            this.putPixel(x0, y0, edge.strokeColor, 1)
+            if (x0 === x1 && y0 === y1) break;
+            let e2 = err;
+            if (e2 > -dx) {
+                err -= dy;
+                x0 += sx;
             }
-            x = x + dx;
-            y = y + dy;
-            i = i + 1;
+            if (e2 < dy) {
+                err += dx;
+                y0 += sy;
+            }
         }
     }
 
@@ -572,69 +560,6 @@ class Painter {
                 }
             });
         }
-    }
-
-    /**
-     * @param {number} x
-     * @param {number} y
-     * @param {ColorRgba|string} color
-     */
-    putFloodFill2(x, y, color) {
-        if (Math.floor(color.a) === 0) {
-            console.warn("Fill a transparent")
-            return;
-        }
-        let pixelData = this.#imageData
-        if (x < 0 || y < 0 || x > pixelData.width || y > pixelData.height) {
-            console.warn("Fill out of bounds")
-            return;
-        }
-        let i = (y * pixelData.width + x) * 4;
-        let pixels = pixelData.data;
-
-        if (pixels[i + 3] === 0) { // fill if transparent
-            pixels[i] = color.r;
-            pixels[i + 1] = color.g;
-            pixels[i + 2] = color.b;
-            pixels[i + 3] = color.a;
-            this.putFloodFill2(x - 1, y, color);
-            this.putFloodFill2(x + 1, y, color);
-            this.putFloodFill2(x, y - 1, color);
-            this.putFloodFill2(x, y + 1, color);
-        }
-    }
-
-    /**
-     * @param {Vector2} pos
-     * @param {ColorRgba|string} color
-     */
-    putFloodFill(pos, color) {
-        if (this.isOutOfBounds(pos.x, pos.y)) {
-            console.error(`Pixel out of bounds before filling: ${pos.x},${pos.y}`)
-            return
-        }
-        if (!this.isColorTransparentAt(pos.x, pos.y)) {
-            console.error(`Pixel out of bounds before filling 2: ${pos.x},${pos.y}`)
-            return
-        }
-
-        // this pixel is transparent, colorize it
-        let ok = this.putPixel(pos.x, pos.y, color, 1)
-        if (ok === false) {
-            console.error(`Pixel out of bounds after filling: ${pos.x},${pos.y}`)
-            return
-        }
-
-        // do the same with the neighbor pixels
-        this.putFloodFill(new Vector2(pos.x + 1, pos.y), color)
-        this.putFloodFill(new Vector2(pos.x - 1, pos.y), color)
-        this.putFloodFill(new Vector2(pos.x, pos.y + 1), color)
-        this.putFloodFill(new Vector2(pos.x, pos.y - 1), color)
-
-        //this.putFloodFill(Geometry:Vector2(pos.x - 1, pos.y - 1), color)
-        //this.putFloodFill(Geometry:Vector2(pos.x - 1, pos.y + 1), color)
-        //this.putFloodFill(Geometry:Vector2(pos.x + 1, pos.y + 1), color)
-        //this.putFloodFill(Geometry:Vector2(pos.x + 1, pos.y - 1), color)
     }
 
     /**

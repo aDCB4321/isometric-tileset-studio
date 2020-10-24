@@ -20,17 +20,13 @@ class App extends React.Component {
         let poly = PolyhedronFactory.createCube(
             PolyhedronFactoryOptions.createQuickOptions(
                 Math.floor(painter.getWidth() / 3), Math.floor(painter.getHeight() / 3),
-                1, 1, 120,
-                64, 32,
-                1, '#228bcb'
+                64, 64, 32,
+                100, 1, '#569332'
             )
         )
-        console.log(poly)
-        painter.clearCanvas()
         painter.putPolyhedron(poly)
         painter.update()
-        document.getElementById("outp").innerText =
-            painter.getWidth() + "," + painter.getHeight()
+        // document.getElementById("outp").innerText = painter.getWidth() + "," + painter.getHeight()
     }
 
     render() {
