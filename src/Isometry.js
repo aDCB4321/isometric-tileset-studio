@@ -112,6 +112,24 @@ class Area {
     }
 }
 
+class Pixel {
+    x;
+    y;
+    color;
+
+    /**
+     *
+     * @param {number} x
+     * @param {number} y
+     * @param {ColorRgba} color
+     */
+    constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+    }
+}
+
 class Edge {
     from;
     to;
@@ -129,6 +147,10 @@ class Edge {
         this.to = to;
         this.strokeColor = strokeColor;
         this.strokeWidth = strokeWidth;
+    }
+
+    static create(x0, y0, x1, y1, strokeColor) {
+        return new this(new Vector2(x0, y0), new Vector2(x1, y1), strokeColor, 1)
     }
 
     toString() {
@@ -586,6 +608,168 @@ class Painter {
 
     update() {
         this.#ctx.putImageData(this.#imageData, 0, 0);
+    }
+
+    t_getLinePixels(x0, y0, x1, y1, strokeColor, fillColor = null) {
+        let initX = x0, initY = y0;
+        let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+        let dy = Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+        let err = (dx > dy ? dx : -dy) / 2;
+        let pixels = []
+        while (true) {
+            let isStartPixel = (x0 === initX && y0 === initY)
+            let isFinalPixel = (x0 === x1 && y0 === x1)
+            let color = strokeColor
+            if ((fillColor !== null) && (!isStartPixel && !isFinalPixel)) {
+                color = fillColor
+            }
+
+            pixels.push(new Pixel(x0, y0, color))
+
+            if (isFinalPixel) {
+                break
+            }
+            let err2 = err;
+            if (err2 > -dx) {
+                err -= dy;
+                x0 += sx;
+            }
+            if (err2 < dy) {
+                err += dx;
+                y0 += sy;
+            }
+        }
+
+        return pixels
+    }
+
+    // https://en.wikipedia.org/wiki/Even%E2%80%93odd_rule
+    t_isPointInsidePolygon(x, y, vertices) {
+        /* Determine if the point is in the path.
+
+        Args:
+          x -- The x coordinates of point.
+          y -- The y coordinates of point.
+          poly -- a list of tuples [(x, y), (x, y), ...]
+
+        Returns:
+          True if the point is in the path.
+        */
+
+        let verticesCount = vertices.length
+        let j = verticesCount - 1
+        let c = false
+        for (let i = 0; i < verticesCount; i++) {
+            if (((vertices[i][1] > y) !== (vertices[j][1] > y))
+                && (x < vertices[i][0] + (vertices[j][0] - vertices[i][0]) *
+                    (y - vertices[i][1]) / (vertices[j][1] - vertices[i][1]))) {
+
+                c = !c
+            }
+            j = i
+        }
+        return c
+    }
+
+    /**
+     *
+     * @param {Edge} edge0
+     * @param {Edge} edge1
+     * @param {ColorRgba|null} strokeColor
+     * @param {ColorRgba|null} fillColor
+     */
+    t_drawRectangle(edge0, edge1, strokeColor, fillColor = null) {
+        if (strokeColor === null && fillColor === null) {
+            throw Error('Stroke and fill color cannot be both null.')
+        }
+        let minX = Math.min(edge0.from.x, edge0.to.x, edge1.from.x, edge1.to.x),
+            maxX = Math.max(edge0.from.x, edge0.to.x, edge1.from.x, edge1.to.x),
+            minY = Math.min(edge0.from.y, edge0.to.y, edge1.from.y, edge1.to.y),
+            maxY = Math.max(edge0.from.y, edge0.to.y, edge1.from.y, edge1.to.y);
+
+        let vertices = [
+            [edge0.from.x, edge0.from.y],
+            [edge0.to.x, edge0.to.y],
+            [edge1.from.x, edge1.from.y],
+            [edge1.to.x, edge1.to.y]
+        ]
+
+        let pixelMask = []
+
+        for (let x = minX; x <= maxX; x++) {
+            for (let y = minY; y <= maxY; y++) {
+                if (pixelMask[x] === undefined) {
+                    pixelMask[x] = []
+                }
+                pixelMask[x][y] = false;
+                if (!this.t_isPointInsidePolygon(x, y, vertices)) {
+                    //this.putPixel(x, y, strokeColor, 1)
+                    continue;
+                }
+                pixelMask[x][y] = true;
+                if (fillColor !== null) {
+                    this.putPixel(x, y, fillColor, 1)
+                }
+            }
+        }
+
+        console.log(pixelMask)
+        if (strokeColor === null) {
+            return;
+        }
+
+        // borders
+
+        for (let x = minX; x <= maxX; x++) {
+            for (let y = minY; y <= maxY; y++) {
+                if (pixelMask[x][y] === false) {
+                    continue;
+                }
+
+                // borders
+                let neighbourPixels = [
+                    //[x + 1, y + 1], [x - 1, y - 1],
+                    [x + 1, y], [x, y + 1],
+                    [x - 1, y], [x, y - 1],
+                    //[x - 1, y + 1], [x + 1, y - 1]
+                ];
+                for (let i = 0; i < neighbourPixels.length; i++) {
+                    let [bx, by] = neighbourPixels[i]
+                    if (pixelMask[bx] === undefined ||
+                        pixelMask[bx][by] === undefined ||
+                        pixelMask[bx][by] === false) {
+                        this.putPixel(bx, by, strokeColor, 1)
+                    }
+                }
+            }
+        }
+    }
+
+    t_drawTopFace() {
+        let opts = {
+            tileW: 64,
+            tileH: 32,
+            withBorder: true,
+            withFill: true,
+            strokeColor: ColorRgba.create(0, 0, 0, 255),
+            fillColor: ColorRgba.create(190, 98, 205, 255)
+        }
+        let x = 10, y = 150
+        // 40x40  rhombus
+        this.t_drawRectangle(
+            Edge.create(
+                x, y,
+                x + opts.tileW / 2, y + opts.tileH,
+                opts.fillColor
+            ),
+            Edge.create(
+                x + opts.tileW, y,
+                x + opts.tileW / 2, y - opts.tileH,
+                opts.fillColor
+            ),
+            opts.strokeColor,
+            opts.fillColor
+        )
     }
 }
 

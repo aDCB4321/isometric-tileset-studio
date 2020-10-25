@@ -27,6 +27,8 @@ class App extends React.Component {
         painter.putPolyhedron(poly)
         painter.update()
         // document.getElementById("outp").innerText = painter.getWidth() + "," + painter.getHeight()
+        painter.t_drawTopFace()
+        painter.update()
     }
 
     render() {
