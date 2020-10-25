@@ -644,7 +644,7 @@ class Painter {
     }
 
     // https://en.wikipedia.org/wiki/Even%E2%80%93odd_rule
-    t_isPointInsidePolygon(x, y, vertices) {
+    isPositionInPolygon(x, y, vertices) {
         /* Determine if the point is in the path.
 
         Args:
@@ -673,26 +673,25 @@ class Painter {
 
     /**
      *
-     * @param {Edge} edge0
-     * @param {Edge} edge1
+     * @param {Edge[]} edges
      * @param {ColorRgba|null} strokeColor
      * @param {ColorRgba|null} fillColor
      */
-    t_drawRectangle(edge0, edge1, strokeColor, fillColor = null) {
+    drawPolygon(edges, strokeColor, fillColor = null) {
         if (strokeColor === null && fillColor === null) {
             throw Error('Stroke and fill color cannot be both null.')
         }
-        let minX = Math.min(edge0.from.x, edge0.to.x, edge1.from.x, edge1.to.x),
-            maxX = Math.max(edge0.from.x, edge0.to.x, edge1.from.x, edge1.to.x),
-            minY = Math.min(edge0.from.y, edge0.to.y, edge1.from.y, edge1.to.y),
-            maxY = Math.max(edge0.from.y, edge0.to.y, edge1.from.y, edge1.to.y);
 
-        let vertices = [
-            [edge0.from.x, edge0.from.y],
-            [edge0.to.x, edge0.to.y],
-            [edge1.from.x, edge1.from.y],
-            [edge1.to.x, edge1.to.y]
-        ]
+        // first, let's find the rect that we will have to scan pixel by pixel
+        // by calculating the minimum and maximum positions of all vertices.
+
+        let minX = Math.min(...edges.flatMap((edge) => [edge.from.x, edge.to.x])),
+            maxX = Math.max(...edges.flatMap((edge) => [edge.from.x, edge.to.x])),
+            minY = Math.min(...edges.flatMap((edge) => [edge.from.y, edge.to.y])),
+            maxY = Math.max(...edges.flatMap((edge) => [edge.from.y, edge.to.y]))
+
+        let vertices = edges
+            .flatMap((edge) => [[edge.from.x, edge.from.y], [edge.to.x, edge.to.y]])
 
         let pixelMask = []
 
@@ -702,8 +701,8 @@ class Painter {
                     pixelMask[x] = []
                 }
                 pixelMask[x][y] = false;
-                if (!this.t_isPointInsidePolygon(x, y, vertices)) {
-                    //this.putPixel(x, y, strokeColor, 1)
+                if (!this.isPositionInPolygon(x, y, vertices)) {
+                    //this.putPixel(x, y, strokeColor, 1) // this would be a negative mask
                     continue;
                 }
                 pixelMask[x][y] = true;
@@ -713,19 +712,19 @@ class Painter {
             }
         }
 
-        console.log(pixelMask)
+        //console.log(vertices)
+
         if (strokeColor === null) {
             return;
         }
 
+        // TODO: support inner borders
         // borders
-
         for (let x = minX; x <= maxX; x++) {
             for (let y = minY; y <= maxY; y++) {
                 if (pixelMask[x][y] === false) {
                     continue;
                 }
-
                 // borders
                 let neighbourPixels = [
                     //[x + 1, y + 1], [x - 1, y - 1],
@@ -756,17 +755,19 @@ class Painter {
         }
         let x = 10, y = 150
         // 40x40  rhombus
-        this.t_drawRectangle(
-            Edge.create(
-                x, y,
-                x + opts.tileW / 2, y + opts.tileH,
-                opts.fillColor
-            ),
-            Edge.create(
-                x + opts.tileW, y,
-                x + opts.tileW / 2, y - opts.tileH,
-                opts.fillColor
-            ),
+        this.drawPolygon(
+            [
+                Edge.create(
+                    x, y,
+                    x + opts.tileW / 2, y + opts.tileH,
+                    opts.fillColor
+                ),
+                Edge.create(
+                    x + opts.tileW, y,
+                    x + opts.tileW / 2, y - opts.tileH,
+                    opts.fillColor
+                )
+            ],
             opts.strokeColor,
             opts.fillColor
         )
