@@ -794,17 +794,25 @@ class Painter {
     }
 
     drawIsometricCube(opts) {
-        let [x, y, tilew, tileh, half_tilew, half_tileh, size_x, size_y, size_z] = [
-            opts.posX, opts.posY - opts.tileH / 2,
-            opts.tileW, opts.tileH,
-            opts.tileW / 2, opts.tileH / 2,
-            opts.sizeX, opts.sizeY, opts.sizeZ
+        let [tilew, tileh, size_x, size_y, size_z] = [
+            opts.tileW, opts.tileH, opts.sizeX, opts.sizeY, opts.sizeZ
+        ]
+        let [x, y, half_tilew, half_tileh] = [
+            opts.posX, opts.posY - tileh/ 2, tilew / 2, tileh / 2
         ];
 
         let perspective = (tilew / tileh)
-        let size_yx = opts.sizeX / perspective
-        let size_yz = opts.sizeZ / perspective
 
+        if (size_x < tilew) {
+            size_x -= half_tilew
+        }
+
+        if (size_z < tilew) {
+            size_z -= half_tilew
+        }
+
+        let size_yx = size_x / perspective
+        let size_yz = size_z / perspective
 
         let noStroke = (new Stroke(0)).asInner()
         let lightStroke = noStroke
@@ -823,6 +831,8 @@ class Painter {
         if (opts.stroke.isDrawable()) {
             lightStroke = new Stroke(opts.stroke.size, lightStrokeColor, opts.stroke.inner)
         }
+
+        let r = opts.rotation;
 
         // TOP face
         let topVertices = [
@@ -847,6 +857,23 @@ class Painter {
             topVertices[3], // middle,top
             leftVertices[3], // middle,down
         ]
+
+        // apply size
+        // Z
+        topVertices[1].x += size_z
+        topVertices[1].y -= (size_yz)
+        topVertices[2].x += size_z
+        topVertices[2].y -= (size_yz)
+        rightVertices[0].x += size_z
+        rightVertices[0].y -= (size_yz)
+
+
+        topVertices[0].x -= size_x
+        topVertices[0].y -= (size_yx)
+        topVertices[1].x -= size_x
+        topVertices[1].y -= (size_yx)
+        leftVertices[0].x -= size_x
+        leftVertices[0].y -= (size_yx)
 
         // // pyramid
         // topVertices = [

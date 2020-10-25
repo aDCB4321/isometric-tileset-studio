@@ -30,11 +30,12 @@ class App extends React.Component {
         let v2opts = {
             posX: Math.floor(painter.getWidth() / 2),
             posY: Math.floor(painter.getHeight() / 2),
-            tileW: 128,
-            tileH: 64,
-            sizeX: 120,
-            sizeZ: 40,
-            sizeY: 128,
+            tileW: 64,
+            tileH: 32,
+            sizeX: 30,
+            sizeZ: 30,
+            sizeY: 40,
+            rotation: 4,
             stroke: new Stroke(1, new ColorRgba('rgb(0,0,0)')).asInner(),
             baseColor: new ColorRgba('rgb(190,98,205)')
         }
