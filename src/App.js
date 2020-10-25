@@ -35,7 +35,7 @@ class App extends React.Component {
             sizeX: 30,
             sizeZ: 30,
             sizeY: 40,
-            rotation: 4,
+            rotation: 0,
             stroke: new Stroke(1, new ColorRgba('rgb(0,0,0)')).asInner(),
             baseColor: new ColorRgba('rgb(190,98,205)')
         }

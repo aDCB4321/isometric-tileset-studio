@@ -797,11 +797,16 @@ class Painter {
         let [tilew, tileh, size_x, size_y, size_z] = [
             opts.tileW, opts.tileH, opts.sizeX, opts.sizeY, opts.sizeZ
         ]
-        let [x, y, half_tilew, half_tileh] = [
-            opts.posX, opts.posY - tileh/ 2, tilew / 2, tileh / 2
-        ];
 
         let perspective = (tilew / tileh)
+        let [rx, ry] = [opts.rotation, opts.rotation / perspective];
+
+        // tilew += Math.max(rx,1)
+        // tileh -= Math.max(ry,1)
+
+        let [x, y, half_tilew, half_tileh] = [
+            opts.posX, opts.posY - tileh / 2, tilew / 2, tileh / 2
+        ];
 
         if (size_x < tilew) {
             size_x -= half_tilew
@@ -832,27 +837,25 @@ class Painter {
             lightStroke = new Stroke(opts.stroke.size, lightStrokeColor, opts.stroke.inner)
         }
 
-        let r = opts.rotation;
-
         // TOP face
         let topVertices = [
-            new Vector2(x, y), // left
-            new Vector2(x + half_tilew, y - half_tileh), // top
-            new Vector2(x + tilew, y), // right
-            new Vector2(x + half_tilew, y + half_tileh), // bottom
+            new Vector2(x + rx, y + ry), // left
+            new Vector2(x + half_tilew - rx, y - half_tileh + ry), // top
+            new Vector2(x + tilew - rx, y - ry), // right
+            new Vector2(x + half_tilew + rx, y + half_tileh - ry), // bottom
         ]
 
         // LEFT face
         let leftVertices = [
-            new Vector2(x, y + size_y), // left,down
+            new Vector2(x + rx, y + size_y + ry), // left,down
             topVertices[0], // left,top
             topVertices[3], // middle,top
-            new Vector2(x + half_tilew, y + (half_tileh) + size_y), // middle,down
+            new Vector2(x + half_tilew + rx, y + (half_tileh) + size_y - ry), // middle,down
         ]
 
         // RIGHT face
         let rightVertices = [
-            new Vector2(x + tilew, y + size_y), // right,down
+            new Vector2(x + tilew - rx, y + size_y - ry), // right,down
             topVertices[2], // right.top
             topVertices[3], // middle,top
             leftVertices[3], // middle,down
