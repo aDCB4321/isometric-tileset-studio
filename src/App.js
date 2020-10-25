@@ -30,14 +30,13 @@ class App extends React.Component {
         let v2opts = {
             posX: Math.floor(painter.getWidth() / 2),
             posY: Math.floor(painter.getHeight() / 2),
-            tileW: 256,
-            tileH: 128,
-            sizeX: 0,
-            sizeZ: 0,
-            sizeY: 100,
-            stroke: new Stroke(2, new ColorRgba('rgb(0,0,0)')).asInner(),
-            strokeLight: new Stroke(2, new ColorRgba('rgb(229,178,237)')).asInner(),
-            fillColor: new ColorRgba('rgb(190,98,205)')
+            tileW: 128,
+            tileH: 64,
+            sizeX: 120,
+            sizeZ: 40,
+            sizeY: 128,
+            stroke: new Stroke(1, new ColorRgba('rgb(0,0,0)')).asInner(),
+            baseColor: new ColorRgba('rgb(190,98,205)')
         }
         painter.drawIsometricCube(v2opts)
         painter.update()
@@ -50,7 +49,7 @@ class App extends React.Component {
                 Isometric Tool
                 <br/>
                 <div className="isometry">
-                    <canvas ref={this.canvas} width="600" height="600"/>
+                    <canvas ref={this.canvas} width="600" height="400"/>
                 </div>
                 <div id="outp"></div>
             </header>

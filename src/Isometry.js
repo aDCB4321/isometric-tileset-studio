@@ -139,10 +139,12 @@ class Stroke {
      *
      * @param {number} size
      * @param {ColorRgba} color
+     * @param {boolean} inner
      */
-    constructor(size = 0, color = null) {
+    constructor(size = 0, color = null, inner = false) {
         this.size = Math.floor(size ? size : 0)
         this.color = color ? color : TransparentColor
+        this.inner = inner
     }
 
     asInner() {
@@ -156,7 +158,7 @@ class Stroke {
     }
 
     isDrawable() {
-        return this.size === 0 || this.color.a === 0
+        return this.size > 0 || this.color.a > 0
     }
 }
 
@@ -173,10 +175,10 @@ class Border {
      * @param {Stroke|null} left
      */
     constructor(top, right, bottom, left) {
-        this.top = top;
-        this.right = right;
-        this.bottom = bottom;
-        this.left = left;
+        this.top = top ? top : new Stroke(0);
+        this.right = right ? right : new Stroke(0);
+        this.bottom = bottom ? bottom : new Stroke(0);
+        this.left = left ? left : new Stroke(0);
     }
 }
 
@@ -286,7 +288,7 @@ class PolyhedronColorPalette {
             base,
             base.saturate(0.3).darken(0.1),
             base.saturate(0.3).darken(0.4),
-            base.desaturate(0.2).lighten(0.2),
+            base.desaturate(0.1).lighten(0.1),
             base.desaturate(0.4).lighten(0.4),
             new ColorRgba('#000000')
         )
@@ -740,11 +742,11 @@ class Painter {
         if (borders === null) {
             return pixelMask;
         }
-
+        console.log(borders)
         // borders
         for (let x = minX; x <= maxX; x++) {
             for (let y = minY; y <= maxY; y++) {
-                if (pixelMask[x][y] === ID_OUT_OF_POLYGON) {
+                if (pixelMask[x][y] < ID_FILL) {
                     continue;
                 }
                 // borders
@@ -752,18 +754,18 @@ class Painter {
                     //[x + stroke.size, y + stroke.size],
                     //[x - stroke.size, y - stroke.size],
                     //[x - stroke.size, y - stroke.size],
-                    [x - borders.left.size, y,  borders.left], // left border
-                    [x, y - borders.top,  borders.top], // top border
-                    [x + borders.right, y,  borders.right], // right border
-                    [x, y + borders.bottom,  borders.bottom], // bottom border
-                    //[x - stroke.size, y + stroke.size],
+                    [x - borders.left.size, y, borders.left], // left border
+                    [x, y - borders.top.size, borders.top], // top border
+                    [x + borders.right.size, y, borders.right], // right border
+                    [x, y + borders.bottom.size, borders.bottom], // bottom border
+                    //[x - borders.left.size, y + borders.bottom.size, borders.bottom],
                     //[x + stroke.size, y - stroke.size]
                 ];
                 for (let i = 0; i < neighbourPixels.length; i++) {
                     let [bx, by, stroke] = neighbourPixels[i]
 
                     if (!stroke.isDrawable()) {
-                        continue;
+                        //continue;
                     }
 
                     if (pixelMask[bx] === undefined) {
@@ -792,46 +794,98 @@ class Painter {
     }
 
     drawIsometricCube(opts) {
-        let [x, y, h, tilew, tileh] = [opts.posX, opts.posY, opts.sizeY, opts.tileW, opts.tileH];
-        y = y - tileh / 2;
+        let [x, y, tilew, tileh, half_tilew, half_tileh, size_x, size_y, size_z] = [
+            opts.posX, opts.posY - opts.tileH / 2,
+            opts.tileW, opts.tileH,
+            opts.tileW / 2, opts.tileH / 2,
+            opts.sizeX, opts.sizeY, opts.sizeZ
+        ];
+
+        let perspective = (tilew / tileh)
+        let size_yx = opts.sizeX / perspective
+        let size_yz = opts.sizeZ / perspective
+
+
+        let noStroke = (new Stroke(0)).asInner()
+        let lightStroke = noStroke
+        if (!opts.stroke) {
+            opts.stroke = noStroke
+        }
+
+        let topColor = null, leftColor = null, rightColor = null, lightStrokeColor = null;
+        if (opts.baseColor) {
+            let colorPalette = PolyhedronColorPalette.generate(opts.baseColor)
+            topColor = colorPalette.base
+            leftColor = colorPalette.dark
+            rightColor = colorPalette.darker
+            lightStrokeColor = colorPalette.light
+        }
+        if (opts.stroke.isDrawable()) {
+            lightStroke = new Stroke(opts.stroke.size, lightStrokeColor, opts.stroke.inner)
+        }
 
         // TOP face
-        this.drawPolygon(
-            [
-                new Vector2(x, y), // left
-                new Vector2(x + tilew / 2, y - tileh / 2), // top
-                new Vector2(x + tilew, y), // right
-                new Vector2(x + tilew / 2, y + tileh / 2), // bottom
-            ],
-            new Border(opts.stroke, null, null, opts.stroke),
-            opts.fillColor
-        )
+        let topVertices = [
+            new Vector2(x, y), // left
+            new Vector2(x + half_tilew, y - half_tileh), // top
+            new Vector2(x + tilew, y), // right
+            new Vector2(x + half_tilew, y + half_tileh), // bottom
+        ]
 
         // LEFT face
-        x -= 10
-        y += 10
+        let leftVertices = [
+            new Vector2(x, y + size_y), // left,down
+            topVertices[0], // left,top
+            topVertices[3], // middle,top
+            new Vector2(x + half_tilew, y + (half_tileh) + size_y), // middle,down
+        ]
+
+        // RIGHT face
+        let rightVertices = [
+            new Vector2(x + tilew, y + size_y), // right,down
+            topVertices[2], // right.top
+            topVertices[3], // middle,top
+            leftVertices[3], // middle,down
+        ]
+
+        // // pyramid
+        // topVertices = [
+        //     topVertices[1],
+        //     topVertices[1],
+        //     topVertices[1],
+        //     topVertices[1],
+        // ]
+
+        // // pyramid, inverted
+        // leftVertices[0] = leftVertices[3]
+        // rightVertices[0] = leftVertices[3]
+
         this.drawPolygon(
-            [
-                new Vector2(x, y + h), // left,down
-                new Vector2(x, y), // left.top
-                new Vector2(x + tilew / 2, y + tileh / 2), // middle,top
-                new Vector2(x + tilew / 2, y + (tileh / 2) + h), // middle,down
-            ],
-            opts.stroke,
-            opts.fillColor
+            topVertices,
+            new Border(opts.stroke, lightStroke, lightStroke, lightStroke),
+            topColor
+        )
+        this.drawPolygon(
+            leftVertices,
+            new Border(null, lightStroke, opts.stroke, opts.stroke),
+            leftColor
+        )
+        this.drawPolygon(
+            rightVertices,
+            new Border(null, lightStroke, opts.stroke, null),
+            rightColor
         )
 
-        x += 20
-        // RIGHT face
+        // Final outline fix "cell shading"
+        opts.stroke.size *= 1
         this.drawPolygon(
             [
-                new Vector2(x + tilew, y + h), // left,down
-                new Vector2(x + tilew, y), // left.top
-                new Vector2(x + tilew / 2, y + tileh / 2), // middle,top
-                new Vector2(x + tilew / 2, y + (tileh / 2) + h), // middle,down
+                topVertices[0], topVertices[1], topVertices[2],
+                rightVertices[0], rightVertices[3],
+                leftVertices[0],
             ],
-            opts.stroke,
-            opts.fillColor
+            new Border(opts.stroke, opts.stroke, opts.stroke, opts.stroke),
+            null
         )
     }
 }
