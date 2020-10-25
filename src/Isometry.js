@@ -130,6 +130,56 @@ class Pixel {
     }
 }
 
+class Stroke {
+    size;
+    color;
+    inner = false;
+
+    /**
+     *
+     * @param {number} size
+     * @param {ColorRgba} color
+     */
+    constructor(size = 0, color = null) {
+        this.size = Math.floor(size ? size : 0)
+        this.color = color ? color : TransparentColor
+    }
+
+    asInner() {
+        this.inner = true
+        return this
+    }
+
+    asOuter() {
+        this.inner = false
+        return this
+    }
+
+    isDrawable() {
+        return this.size === 0 || this.color.a === 0
+    }
+}
+
+class Border {
+    top;
+    right;
+    bottom;
+    left;
+
+    /**
+     * @param {Stroke|null} top
+     * @param {Stroke|null} right
+     * @param {Stroke|null} bottom
+     * @param {Stroke|null} left
+     */
+    constructor(top, right, bottom, left) {
+        this.top = top;
+        this.right = right;
+        this.bottom = bottom;
+        this.left = left;
+    }
+}
+
 class Edge {
     from;
     to;
@@ -610,39 +660,6 @@ class Painter {
         this.#ctx.putImageData(this.#imageData, 0, 0);
     }
 
-    t_getLinePixels(x0, y0, x1, y1, strokeColor, fillColor = null) {
-        let initX = x0, initY = y0;
-        let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-        let dy = Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-        let err = (dx > dy ? dx : -dy) / 2;
-        let pixels = []
-        while (true) {
-            let isStartPixel = (x0 === initX && y0 === initY)
-            let isFinalPixel = (x0 === x1 && y0 === x1)
-            let color = strokeColor
-            if ((fillColor !== null) && (!isStartPixel && !isFinalPixel)) {
-                color = fillColor
-            }
-
-            pixels.push(new Pixel(x0, y0, color))
-
-            if (isFinalPixel) {
-                break
-            }
-            let err2 = err;
-            if (err2 > -dx) {
-                err -= dy;
-                x0 += sx;
-            }
-            if (err2 < dy) {
-                err += dx;
-                y0 += sy;
-            }
-        }
-
-        return pixels
-    }
-
     // https://en.wikipedia.org/wiki/Even%E2%80%93odd_rule
     isPositionInPolygon(x, y, vertices) {
         /* Determine if the point is in the path.
@@ -673,26 +690,34 @@ class Painter {
 
     /**
      *
-     * @param {Edge[]} edges
-     * @param {ColorRgba|null} strokeColor
+     * @param {Vector2[]} vertices
+     * @param {Border|null} borders
      * @param {ColorRgba|null} fillColor
+     * @return {[[number, number]]}
      */
-    drawPolygon(edges, strokeColor, fillColor = null) {
-        if (strokeColor === null && fillColor === null) {
+    drawPolygon(vertices, borders, fillColor = null) {
+        if (borders === null && fillColor === null) {
             throw Error('Stroke and fill color cannot be both null.')
         }
+
+        let ID_OUT_OF_POLYGON = 0,
+            ID_OUTER_BORDER = 1,
+            ID_INNER_BORDER = 2,
+            ID_FILL = 3;
 
         // first, let's find the rect that we will have to scan pixel by pixel
         // by calculating the minimum and maximum positions of all vertices.
 
-        let minX = Math.min(...edges.flatMap((edge) => [edge.from.x, edge.to.x])),
-            maxX = Math.max(...edges.flatMap((edge) => [edge.from.x, edge.to.x])),
-            minY = Math.min(...edges.flatMap((edge) => [edge.from.y, edge.to.y])),
-            maxY = Math.max(...edges.flatMap((edge) => [edge.from.y, edge.to.y]))
-
-        let vertices = edges
-            .flatMap((edge) => [[edge.from.x, edge.from.y], [edge.to.x, edge.to.y]])
-
+        let flatVertices = vertices.map((v) => [
+            Math.floor(v.x),
+            Math.floor(v.y)
+        ])
+        let xs = flatVertices.map((xy) => xy[0])
+        let ys = flatVertices.map((xy) => xy[1])
+        let minX = Math.min(...xs),
+            maxX = Math.max(...xs),
+            minY = Math.min(...ys),
+            maxY = Math.max(...ys);
         let pixelMask = []
 
         for (let x = minX; x <= maxX; x++) {
@@ -700,75 +725,112 @@ class Painter {
                 if (pixelMask[x] === undefined) {
                     pixelMask[x] = []
                 }
-                pixelMask[x][y] = false;
-                if (!this.isPositionInPolygon(x, y, vertices)) {
+                pixelMask[x][y] = ID_OUT_OF_POLYGON;
+                if (!this.isPositionInPolygon(x, y, flatVertices)) {
                     //this.putPixel(x, y, strokeColor, 1) // this would be a negative mask
                     continue;
                 }
-                pixelMask[x][y] = true;
+                pixelMask[x][y] = ID_FILL;
                 if (fillColor !== null) {
                     this.putPixel(x, y, fillColor, 1)
                 }
             }
         }
 
-        //console.log(vertices)
-
-        if (strokeColor === null) {
-            return;
+        if (borders === null) {
+            return pixelMask;
         }
 
-        // TODO: support inner borders
         // borders
         for (let x = minX; x <= maxX; x++) {
             for (let y = minY; y <= maxY; y++) {
-                if (pixelMask[x][y] === false) {
+                if (pixelMask[x][y] === ID_OUT_OF_POLYGON) {
                     continue;
                 }
                 // borders
                 let neighbourPixels = [
-                    //[x + 1, y + 1], [x - 1, y - 1],
-                    [x + 1, y], [x, y + 1],
-                    [x - 1, y], [x, y - 1],
-                    //[x - 1, y + 1], [x + 1, y - 1]
+                    //[x + stroke.size, y + stroke.size],
+                    //[x - stroke.size, y - stroke.size],
+                    //[x - stroke.size, y - stroke.size],
+                    [x - borders.left.size, y,  borders.left], // left border
+                    [x, y - borders.top,  borders.top], // top border
+                    [x + borders.right, y,  borders.right], // right border
+                    [x, y + borders.bottom,  borders.bottom], // bottom border
+                    //[x - stroke.size, y + stroke.size],
+                    //[x + stroke.size, y - stroke.size]
                 ];
                 for (let i = 0; i < neighbourPixels.length; i++) {
-                    let [bx, by] = neighbourPixels[i]
-                    if (pixelMask[bx] === undefined ||
-                        pixelMask[bx][by] === undefined ||
-                        pixelMask[bx][by] === false) {
-                        this.putPixel(bx, by, strokeColor, 1)
+                    let [bx, by, stroke] = neighbourPixels[i]
+
+                    if (!stroke.isDrawable()) {
+                        continue;
+                    }
+
+                    if (pixelMask[bx] === undefined) {
+                        pixelMask[bx] = []
+                    }
+
+                    if (pixelMask[bx][by] === undefined) {
+                        pixelMask[bx][by] = ID_OUT_OF_POLYGON
+                    }
+
+                    if (pixelMask[bx][by] < ID_FILL) {
+                        if (stroke.inner) {
+                            pixelMask[bx][by] = ID_INNER_BORDER
+                            this.putPixel(x, y, stroke.color, 1)
+                        } else {
+                            // TODO fix outer border corners
+                            pixelMask[bx][by] = ID_OUTER_BORDER
+                            this.putPixel(bx, by, stroke.color, 1)
+                        }
                     }
                 }
             }
         }
+
+        return pixelMask
     }
 
-    t_drawTopFace() {
-        let opts = {
-            tileW: 64,
-            tileH: 32,
-            withBorder: true,
-            withFill: true,
-            strokeColor: ColorRgba.create(0, 0, 0, 255),
-            fillColor: ColorRgba.create(190, 98, 205, 255)
-        }
-        let x = 10, y = 150
-        // 40x40  rhombus
+    drawIsometricCube(opts) {
+        let [x, y, h, tilew, tileh] = [opts.posX, opts.posY, opts.sizeY, opts.tileW, opts.tileH];
+        y = y - tileh / 2;
+
+        // TOP face
         this.drawPolygon(
             [
-                Edge.create(
-                    x, y,
-                    x + opts.tileW / 2, y + opts.tileH,
-                    opts.fillColor
-                ),
-                Edge.create(
-                    x + opts.tileW, y,
-                    x + opts.tileW / 2, y - opts.tileH,
-                    opts.fillColor
-                )
+                new Vector2(x, y), // left
+                new Vector2(x + tilew / 2, y - tileh / 2), // top
+                new Vector2(x + tilew, y), // right
+                new Vector2(x + tilew / 2, y + tileh / 2), // bottom
             ],
-            opts.strokeColor,
+            new Border(opts.stroke, null, null, opts.stroke),
+            opts.fillColor
+        )
+
+        // LEFT face
+        x -= 10
+        y += 10
+        this.drawPolygon(
+            [
+                new Vector2(x, y + h), // left,down
+                new Vector2(x, y), // left.top
+                new Vector2(x + tilew / 2, y + tileh / 2), // middle,top
+                new Vector2(x + tilew / 2, y + (tileh / 2) + h), // middle,down
+            ],
+            opts.stroke,
+            opts.fillColor
+        )
+
+        x += 20
+        // RIGHT face
+        this.drawPolygon(
+            [
+                new Vector2(x + tilew, y + h), // left,down
+                new Vector2(x + tilew, y), // left.top
+                new Vector2(x + tilew / 2, y + tileh / 2), // middle,top
+                new Vector2(x + tilew / 2, y + (tileh / 2) + h), // middle,down
+            ],
+            opts.stroke,
             opts.fillColor
         )
     }
@@ -785,5 +847,7 @@ export {
     PolyhedronFactory,
     PolyhedronFactoryOptions,
     PolyhedronColorPalette,
-    Painter
+    Painter,
+    ColorRgba,
+    Stroke
 }
