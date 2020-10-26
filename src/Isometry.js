@@ -59,8 +59,8 @@ class ColorRgba {
         return `rgba(${this.r},${this.g},${this.b},${this.a})`
     }
 
-    toHexString(){
-        return (new Color({r:this.r, g:this.g, b:this.b}).alpha(this.a / 255)).hex()
+    toHexString() {
+        return (new Color({r: this.r, g: this.g, b: this.b}).alpha(this.a / 255)).hex()
     }
 }
 
@@ -297,10 +297,10 @@ class PolyhedronColorPalette {
         let base = new ColorRgba(baseColor)
         return new this(
             base,
-            base.saturate(0.3).darken(0.1),
-            base.saturate(0.3).darken(0.4),
-            base.desaturate(0.1).lighten(0.1),
-            base.desaturate(0.4).lighten(0.4),
+            base.saturate(0.2).darken(0.2),
+            base.saturate(0.2).darken(0.4),
+            base.saturate(0.1).lighten(0.2),
+            base.saturate(0.4).lighten(0.4),
             new ColorRgba('#000000')
         )
     }
@@ -506,7 +506,7 @@ class Painter {
     constructor(canvas) {
         this.#canvas = canvas
         this.#ctx = this.#canvas.getContext('2d')
-        this.#ctx.scale(5,5)
+        this.#ctx.scale(5, 5)
         this.#imageData = this.#ctx.getImageData(
             0, 0, this.#canvas.width, this.#canvas.height
         )
@@ -868,10 +868,12 @@ class Painter {
         let size_yx = size_x / perspective
         let size_yz = size_z / perspective
 
-        console.log(tilew, tileh, size_x, size_y,size_yx, size_z,size_yz, perspective)
+        console.log(tilew, tileh, size_x, size_y, size_yx, size_z, size_yz, perspective)
 
         let noStroke = (new Stroke(0)).asInner()
         let lightStroke = noStroke
+        let middleLeftStroke = noStroke
+        let middleRightStroke = noStroke
         if (!opts.stroke) {
             opts.stroke = noStroke
         }
@@ -886,11 +888,19 @@ class Painter {
         }
         if (opts.stroke.isDrawable()) {
             lightStroke = new Stroke(opts.stroke.size, lightStrokeColor, opts.stroke.inner)
-        }
-        let leftFixStroke = new Stroke(opts.stroke.size, leftColor, opts.stroke.inner)
-        let blackStroke = opts.stroke
+            let middleLeftStrokeSize = Math.ceil(opts.stroke.size / 2)
+            let middleRightStrokeSize = Math.floor(opts.stroke.size / 2)
 
-        //console.log(x,y,tilew, tileh, size_x, size_y, size_z)
+            if (middleLeftStrokeSize > 0) {
+                middleLeftStroke = new Stroke(middleLeftStrokeSize, lightStrokeColor, opts.stroke.inner)
+            }
+            if (middleRightStrokeSize > 0) {
+                middleRightStrokeSize += 1
+                middleRightStroke = new Stroke(middleRightStrokeSize, lightStrokeColor, opts.stroke.inner)
+            }
+        }
+
+        let blackStroke = opts.stroke
 
         // TOP face
         let topVertices = [
@@ -966,7 +976,7 @@ class Painter {
             [
                 leftVertices[0], leftVertices[1], leftVertices[2], leftVertices[3]
             ],
-            new Border(lightStroke, lightStroke, lightStroke, lightStroke),
+            new Border(lightStroke, lightStroke, lightStroke, middleLeftStroke),
             null
         )
 
@@ -974,7 +984,7 @@ class Painter {
             [
                 rightVertices[0], rightVertices[1], rightVertices[2], rightVertices[3],
             ],
-            new Border(lightStroke, lightStroke, lightStroke, null),
+            new Border(lightStroke, lightStroke, lightStroke, middleRightStroke),
             null
         )
 

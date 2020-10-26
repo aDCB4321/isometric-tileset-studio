@@ -159,8 +159,8 @@ $sideMenuWidth: 250px;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 
-  border: 2px dashed rgba(0, 0, 0, 0.24);
-  box-shadow: 4px 4px 0 rgba(93, 111, 123, 0.34);
+  border: 1px solid rgba(0, 0, 0, 0.24);
+  box-shadow: 2px 2px 3px rgba(93, 111, 123, 0.3);
   vertical-align: middle;
   margin-top: $spacing * 2;
   //@include isometric-bg(64px, 64px, rgb(220, 220, 220));

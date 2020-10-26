@@ -4,9 +4,9 @@ import './Isometry';
 import {ColorRgba, Painter, PolyhedronOptions, Stroke} from "./Isometry";
 
 const defaults = new PolyhedronOptions(
-    256, 160, 128, 64, 64, 64, 64, 0,
+    128, 128, 128, 64, 64, 64, 64, 0,
     new Stroke(1, ColorRgba.create(0, 0, 0, 255), true),
-    new ColorRgba('rgb(190,98,205,0.95)')
+    new ColorRgba('rgb(27,250,172)')
 )
 
 class App extends React.Component {
@@ -20,11 +20,13 @@ class App extends React.Component {
     layersContainer;
     viewportContainer;
     canvasGrid;
+    layers = []
+    currentLayer = 0
 
     constructor(props) {
         super(props);
-        this.state = {zoom: 1.2, options: defaults};
-        this.canvas = React.createRef();
+        this.state = {zoom: 1.2, options: defaults, layerCount: 1};
+        this.layers[this.currentLayer] = React.createRef();
         this.layersContainer = React.createRef();
         this.viewportContainer = React.createRef();
         this.canvasGrid = React.createRef();
@@ -34,11 +36,16 @@ class App extends React.Component {
         this.handleStrokeColorChange = this.handleStrokeColorChange.bind(this);
         this.handleStrokeSizeChange = this.handleStrokeSizeChange.bind(this);
         this.handleZoomChange = this.handleZoomChange.bind(this);
+        this.handleGridChange = this.handleGridChange.bind(this);
+    }
+
+    getCurrentLayer() {
+        return this.layers[this.currentLayer]
     }
 
     componentDidMount() {
-        this.painter = new Painter(this.canvas.current)
-        this.drawGrid()
+        this.painter = new Painter(this.getCurrentLayer().current)
+        this.drawGrid(this.state.options.tileWidth, this.state.options.tileHeight)
         this.updateFigure(this.state.options)
         this.handleZoomChange({target: {value: this.state.zoom}})
         this.registerScrollOnDrag();
@@ -86,6 +93,15 @@ class App extends React.Component {
     }
 
     render() {
+        let makeLayerComboItems = function (count) {
+            let opts = []
+            for (let i = 0; i < count; i++) {
+                opts.push(<option key={i} value={i}>{i}</option>);
+            }
+            return opts
+        };
+
+
         return <div className="ips-app">
             <header className="ips-menu ips-menu-top">
                 <h1>Isometric Pixel Studio</h1>
@@ -93,7 +109,7 @@ class App extends React.Component {
             <div className="ips-menu ips-menu-left">
                 <div className="ips-form">
                     <div className="ips-form-group">
-                        <header>Zoom: {this.state.zoom * 100} %</header>
+                        <header>Zoom: {Math.round(this.state.zoom * 10) * 10} %</header>
                         <label>
                             <input name="zoom" type="range" min={1} max={4} step={0.1}
                                    value={this.state.zoom} onChange={this.handleZoomChange}/>
@@ -104,12 +120,12 @@ class App extends React.Component {
                         <label>
                             Tile width:
                             <input name="tileWidth" type="range" min={0} max={320} step={8}
-                                   value={this.state.options.tileWidth} onChange={this.handleInputNumChange}/>
+                                   value={this.state.options.tileWidth} onChange={this.handleGridChange}/>
                         </label>
                         <label>
                             Tile height:
                             <input name="tileHeight" type="range" min={0} max={240} step={8}
-                                   value={this.state.options.tileHeight} onChange={this.handleInputNumChange}/>
+                                   value={this.state.options.tileHeight} onChange={this.handleGridChange}/>
                         </label>
                         <label>
                             Rotation ({this.state.options.rotation}%):
@@ -122,7 +138,7 @@ class App extends React.Component {
                         <label>
                             Current layer:
                             <select name="layer">
-                                <option value={0}>0</option>
+                                {makeLayerComboItems(this.state.layerCount)}
                             </select>
                         </label>
                         <label>
@@ -135,10 +151,10 @@ class App extends React.Component {
             <div className="ips-viewport" ref={this.viewportContainer}>
                 <div className="ips-layers" ref={this.layersContainer}>
                     <div className="layer" style={{zIndex: "2"}}>
-                        <canvas width={640} height={480} ref={this.canvas}/>
+                        <canvas width={640} height={640} ref={this.layers[0]}/>
                     </div>
                     <div className="layer layer-grid">
-                        <canvas width={640} height={480} ref={this.canvasGrid}/>
+                        <canvas width={640} height={640} ref={this.canvasGrid}/>
                     </div>
                 </div>
             </div>
@@ -223,11 +239,17 @@ class App extends React.Component {
         });
     }
 
-    triggerOptionsStateChange(propName, propValue) {
+    triggerOptionsStateChange(propName, propValue, callback) {
+        if (!callback) {
+            callback = () => {
+            }
+        }
+        callback.bind(this);
         this.setState(prevState => {
             let state = Object.assign({}, prevState);
             state.options[propName] = propValue
             this.updateFigure(state.options)
+            callback(state)
             return state
         });
     }
@@ -259,15 +281,23 @@ class App extends React.Component {
         })
     }
 
-    drawGrid() {
+    handleGridChange(event) {
+        this.triggerOptionsStateChange(
+            event.target.name, parseInt(event.target.value),
+            (state) => {
+                this.drawGrid(state.options.tileWidth, state.options.tileHeight)
+            }
+        )
+    }
+
+    drawGrid(tileWidth, tileHeight) {
         const canvas = this.canvasGrid.current
         const c = canvas.getContext('2d')
         const width = canvas.width
         const height = canvas.height
-        const tileWidth = this.state.options.tileWidth
-        const tileHeight = this.state.options.tileHeight
-        const gridNumX = 120
-        const gridNumY = 120
+        const gridNumX = 100
+        const gridNumY = 100
+        const lineColor = '#a6a6a6'
 
         c.translate(width / 2, -height)
 
@@ -297,7 +327,7 @@ class App extends React.Component {
                 c.lineTo(0, tileHeight)
                 c.lineTo(tileWidth / 2, tileHeight / 2)
                 c.closePath()
-                c.fillStyle = '#000'
+                c.fillStyle = lineColor
                 c.fill()
 
                 // left side od the tile
@@ -307,7 +337,7 @@ class App extends React.Component {
                 c.lineTo(0, tileHeight)
                 c.lineTo(-tileWidth / 2, tileHeight / 2)
                 c.closePath()
-                c.fillStyle = '#000'
+                c.fillStyle = lineColor
                 c.fill()
 
                 c.restore()
@@ -315,7 +345,7 @@ class App extends React.Component {
         }
 
         const draw = function () {
-            c.clearRect(-300, -100, width, height)
+            c.clearRect(0, 0, width, height)
 
             for (let x = 0; x < gridNumX; x++) {
                 for (let y = 0; y < gridNumY; y++) {
