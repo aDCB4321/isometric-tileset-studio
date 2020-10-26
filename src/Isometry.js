@@ -540,6 +540,10 @@ class Painter {
         return new ColorRgba(c)
     }
 
+    drawIsometricGrid() {
+
+    }
+
     /**
      * @param {number} x
      * @param {number} y
@@ -858,16 +862,13 @@ class Painter {
             opts.posX, opts.posY + tileh / 2, tilew / 2, tileh / 2
         ];
 
-        if (size_x < tilew) {
-            size_x -= half_tilew
-        }
-
-        if (size_z < tilew) {
-            size_z -= half_tilew
-        }
+        size_x -= half_tilew
+        size_z -= half_tilew
 
         let size_yx = size_x / perspective
         let size_yz = size_z / perspective
+
+        console.log(tilew, tileh, size_x, size_y,size_yx, size_z,size_yz, perspective)
 
         let noStroke = (new Stroke(0)).asInner()
         let lightStroke = noStroke
@@ -889,7 +890,7 @@ class Painter {
         let leftFixStroke = new Stroke(opts.stroke.size, leftColor, opts.stroke.inner)
         let blackStroke = opts.stroke
 
-        console.log(x,y,tilew, tileh, size_x, size_y, size_z)
+        //console.log(x,y,tilew, tileh, size_x, size_y, size_z)
 
         // TOP face
         let topVertices = [

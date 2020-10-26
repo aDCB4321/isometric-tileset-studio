@@ -13,9 +13,9 @@ $spacing: 16px;
 }
 
 @mixin isometric-bg($tileWidth: 140px, $tileHeight: 80px, $fgColor: #686868, $bgColor: rgb(255,255,255)) {
-  background: repeating-linear-gradient(150deg, $fgColor, $fgColor 1px, transparent 1px, transparent $tileHeight) 0 0,
+  background: repeating-linear-gradient(-30deg, $fgColor, $fgColor 1px, transparent 1px, transparent $tileHeight) 0 0,
   repeating-linear-gradient(30deg, $fgColor, $fgColor 1px, transparent 1px, transparent $tileHeight) 0 0;
-  background-size: 100%, 100%, $tileWidth $tileHeight, $tileWidth $tileHeight;
+  //background-size: 100%, 100%, $tileWidth $tileHeight, $tileWidth $tileHeight;
   background-color: $bgColor;
 }
 
@@ -163,7 +163,7 @@ $sideMenuWidth: 250px;
   box-shadow: 4px 4px 0 rgba(93, 111, 123, 0.34);
   vertical-align: middle;
   margin-top: $spacing * 2;
-  @include isometric-bg(64px, 64px, rgb(220, 220, 220));
+  //@include isometric-bg(64px, 64px, rgb(220, 220, 220));
 }
 
 .ips-form label {
