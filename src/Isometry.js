@@ -836,6 +836,8 @@ class Painter {
         if (opts.stroke.isDrawable()) {
             lightStroke = new Stroke(opts.stroke.size, lightStrokeColor, opts.stroke.inner)
         }
+        let leftFixStroke = new Stroke(opts.stroke.size, leftColor, opts.stroke.inner)
+        let blackStroke = opts.stroke
 
         // TOP face
         let topVertices = [
@@ -892,17 +894,17 @@ class Painter {
 
         this.drawPolygon(
             topVertices,
-            new Border(opts.stroke, lightStroke, lightStroke, lightStroke),
+            new Border(blackStroke, null, null, null),
             topColor
         )
         this.drawPolygon(
             leftVertices,
-            new Border(null, lightStroke, opts.stroke, opts.stroke),
+            new Border(lightStroke, lightStroke, blackStroke, blackStroke),
             leftColor
         )
         this.drawPolygon(
             rightVertices,
-            new Border(null, lightStroke, opts.stroke, null),
+            new Border(lightStroke, blackStroke, blackStroke, null),
             rightColor
         )
 
