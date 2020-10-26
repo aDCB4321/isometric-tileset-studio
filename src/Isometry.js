@@ -8,6 +8,9 @@ class ColorRgba {
     a;
 
     constructor(color) {
+        if (!color) {
+            color = {r: 0, g: 0, b: 0, a: 255}
+        }
         if (color instanceof ColorRgba || (color.r !== undefined && color.a !== undefined)) {
             this.r = color.r
             this.g = color.g
@@ -49,7 +52,15 @@ class ColorRgba {
     }
 
     toString() {
+        return this.toRgbaString()
+    }
+
+    toRgbaString() {
         return `rgba(${this.r},${this.g},${this.b},${this.a})`
+    }
+
+    toHexString(){
+        return (new Color({r:this.r, g:this.g, b:this.b}).alpha(this.a / 255)).hex()
     }
 }
 
@@ -435,6 +446,44 @@ class PolyhedronFactory {
     }
 }
 
+class PolyhedronOptions {
+    posX;
+    posY;
+    tileWidth;
+    tileHeight;
+    sizeX;
+    sizeY;
+    sizeZ;
+    rotation;
+    stroke;
+    baseColor;
+
+    /**
+     * @param {number} posX
+     * @param {number} posY
+     * @param {number} tileWidth
+     * @param {number} tileHeight
+     * @param {number} sizeX
+     * @param {number} sizeY
+     * @param {number} sizeZ
+     * @param {number} rotation
+     * @param {Stroke} stroke
+     * @param {ColorRgba} baseColor
+     */
+    constructor(posX, posY, tileWidth, tileHeight, sizeX, sizeY, sizeZ, rotation, stroke, baseColor) {
+        this.posX = posX;
+        this.posY = posY;
+        this.tileWidth = tileWidth;
+        this.tileHeight = tileHeight;
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
+        this.sizeZ = sizeZ;
+        this.rotation = rotation;
+        this.stroke = stroke;
+        this.baseColor = baseColor;
+    }
+}
+
 class Painter {
     /**
      * @property {HTMLCanvasElement} canvas
@@ -457,6 +506,7 @@ class Painter {
     constructor(canvas) {
         this.#canvas = canvas
         this.#ctx = this.#canvas.getContext('2d')
+        this.#ctx.scale(5,5)
         this.#imageData = this.#ctx.getImageData(
             0, 0, this.#canvas.width, this.#canvas.height
         )
@@ -742,7 +792,7 @@ class Painter {
         if (borders === null) {
             return pixelMask;
         }
-        console.log(borders)
+
         // borders
         for (let x = minX; x <= maxX; x++) {
             for (let y = minY; y <= maxY; y++) {
@@ -795,7 +845,7 @@ class Painter {
 
     drawIsometricCube(opts) {
         let [tilew, tileh, size_x, size_y, size_z] = [
-            opts.tileW, opts.tileH, opts.sizeX, opts.sizeY, opts.sizeZ
+            opts.tileWidth, opts.tileHeight, opts.sizeX, opts.sizeY, opts.sizeZ
         ]
 
         let perspective = (tilew / tileh)
@@ -805,7 +855,7 @@ class Painter {
         // tileh -= Math.max(ry,1)
 
         let [x, y, half_tilew, half_tileh] = [
-            opts.posX, opts.posY - tileh / 2, tilew / 2, tileh / 2
+            opts.posX, opts.posY + tileh / 2, tilew / 2, tileh / 2
         ];
 
         if (size_x < tilew) {
@@ -838,6 +888,8 @@ class Painter {
         }
         let leftFixStroke = new Stroke(opts.stroke.size, leftColor, opts.stroke.inner)
         let blackStroke = opts.stroke
+
+        console.log(x,y,tilew, tileh, size_x, size_y, size_z)
 
         // TOP face
         let topVertices = [
@@ -899,17 +951,33 @@ class Painter {
         )
         this.drawPolygon(
             leftVertices,
-            new Border(lightStroke, lightStroke, blackStroke, blackStroke),
+            new Border(null, null, blackStroke, blackStroke),
             leftColor
         )
         this.drawPolygon(
             rightVertices,
-            new Border(lightStroke, blackStroke, blackStroke, null),
+            new Border(null, blackStroke, blackStroke, null),
             rightColor
         )
 
+        // Draw highlight lines
+        this.drawPolygon(
+            [
+                leftVertices[0], leftVertices[1], leftVertices[2], leftVertices[3]
+            ],
+            new Border(lightStroke, lightStroke, lightStroke, lightStroke),
+            null
+        )
+
+        this.drawPolygon(
+            [
+                rightVertices[0], rightVertices[1], rightVertices[2], rightVertices[3],
+            ],
+            new Border(lightStroke, lightStroke, lightStroke, null),
+            null
+        )
+
         // Final outline fix "cell shading"
-        opts.stroke.size *= 1
         this.drawPolygon(
             [
                 topVertices[0], topVertices[1], topVertices[2],
@@ -933,6 +1001,7 @@ export {
     PolyhedronFactory,
     PolyhedronFactoryOptions,
     PolyhedronColorPalette,
+    PolyhedronOptions,
     Painter,
     ColorRgba,
     Stroke

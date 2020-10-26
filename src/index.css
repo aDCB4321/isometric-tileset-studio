@@ -1,13 +1,41 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@charset "utf-8";
+
+html, body {
+    padding: 0;
+    margin: 0;
+    background-color: #6c828e;
+    color: white;
+    font-family: 'Aseprite', monospace;
+    -webkit-font-smoothing: none;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+html {
+    font-size: 240%;
+    line-height: 0.5em;
+}
+
+body {
+
+}
+
+body {
+    -webkit-font-smoothing: none;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+button, select, input {
+    font-family: 'Aseprite', monospace;
+    font-size: 24px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: normal;
+}
+
+@font-face {
+    font-family: 'Aseprite';
+    src: local('Aseprite'), url(./fonts/aseprite-font.ttf) format('truetype');
 }

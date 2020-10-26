@@ -1,0 +1,176 @@
+// LAYOUT
+$spacing: 16px;
+
+@mixin checkerboard-bg($tileWidth: 30px, $tileHeight: 30px, $fgColor: rgb(220,220,220), $bgColor: rgb(255,255,255)) {
+  $halfTileH: $tileWidth/2;
+  $halfTileW: $tileHeight/2;
+  $fg: $fgColor;
+  background-color: $bgColor;
+  background-image: linear-gradient(45deg, $fg 25%, transparent 25%, transparent 75%, $fg 75%, $fg),
+  linear-gradient(45deg, $fg 25%, transparent 25%, transparent 75%, $fg 75%, $fg);
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
+}
+
+@mixin isometric-bg($tileWidth: 140px, $tileHeight: 80px, $fgColor: #686868, $bgColor: rgb(255,255,255)) {
+  background: repeating-linear-gradient(150deg, $fgColor, $fgColor 1px, transparent 1px, transparent $tileHeight) 0 0,
+  repeating-linear-gradient(30deg, $fgColor, $fgColor 1px, transparent 1px, transparent $tileHeight) 0 0;
+  background-size: 100%, 100%, $tileWidth $tileHeight, $tileWidth $tileHeight;
+  background-color: $bgColor;
+}
+
+.ips-app {
+  position: fixed;
+  margin: 0;
+  padding: 0;
+  top: $spacing;
+  left: $spacing;
+  right: $spacing;
+  bottom: $spacing;
+}
+
+.ips-menu {
+  h1, h2, h3, h4, h5, h6 {
+    font-size: inherit;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.ips-menu, .ips-viewport {
+  position: absolute;
+  padding: $spacing;
+}
+
+.ips-menu, .ips-viewport {
+  background: #655561;
+  border: 1px solid #000;
+  box-shadow: -2px -2px 0 rgba(69, 59, 68, 0.62), 2px 2px 0 #ADCADE;
+  border-radius: 3px;
+}
+
+$topMenuHeight: 40px;
+$sideMenuWidth: 250px;
+
+.ips-menu-top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: $topMenuHeight;
+  background: #7D929E;
+  border: 1px solid rgba(0, 0, 0, 0.24);
+  box-shadow: 2px 2px 0 rgba(69, 59, 68, 0.62), -2px -2px 0 #ADCADE;
+
+  h1 {
+    font-size: 1.5em;
+    display: inline-block;
+    vertical-align: middle;
+  }
+}
+
+.ips-menu-left {
+  top: ($spacing * 3) + $topMenuHeight;
+  left: 0;
+  bottom: 0;
+  width: $sideMenuWidth;
+  overflow: auto;
+}
+
+.ips-menu-right {
+  top: ($spacing * 3) + $topMenuHeight;
+  right: 0;
+  bottom: 0;
+  width: $sideMenuWidth;
+  overflow: auto;
+}
+
+.ips-viewport {
+  top: ($spacing * 3) + $topMenuHeight;
+  bottom: 0;
+  left: $sideMenuWidth + ($spacing  * 3);
+  right: $sideMenuWidth + ($spacing  * 3);
+  cursor: grab;
+  overflow: auto;
+  user-select: none;
+  @include checkerboard-bg(30px, 30px, rgb(230, 230, 230));
+}
+
+.ips-viewport.active {
+  cursor: grabbing;
+}
+
+.ips-app .columns {
+  width: 1024px;
+  margin: 0 auto;
+}
+
+.ips-layers .layer {
+  zoom: 1.25;
+}
+
+.ips-layers, .ips-layers .layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.ips-layers {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+// -----------------------------------------------------------------------
+
+.ips-form {
+
+}
+
+.ips-form label, .ips-form input, .ips-form button, .ips-form select {
+  vertical-align: middle;
+  display: block;
+  margin: 10px 0;
+  width: 100%;
+}
+
+.ips-form-group {
+  padding: $spacing / 2;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.ips-form-group header {
+  padding: 0 0 20px 0;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.layer {
+  vertical-align: middle;
+  text-align: center;
+}
+
+.layer canvas {
+  display: inline-block;
+  background: transparent;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+
+  border: 2px dashed rgba(0, 0, 0, 0.24);
+  box-shadow: 4px 4px 0 rgba(93, 111, 123, 0.34);
+  vertical-align: middle;
+  margin-top: $spacing * 2;
+  @include isometric-bg(64px, 64px, rgb(220, 220, 220));
+}
+
+.ips-form label {
+  display: block;
+
+  input, button, select {
+    margin-top: 20px;
+    height: $spacing * 2;
+  }
+}
