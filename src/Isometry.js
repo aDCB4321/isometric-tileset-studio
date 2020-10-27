@@ -868,7 +868,7 @@ class Painter {
         let size_yx = size_x / perspective
         let size_yz = size_z / perspective
 
-        console.log(tilew, tileh, size_x, size_y, size_yx, size_z, size_yz, perspective)
+        //console.log(tilew, tileh, size_x, size_y, size_yx, size_z, size_yz, perspective)
 
         let noStroke = (new Stroke(0)).asInner()
         let lightStroke = noStroke
