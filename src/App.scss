@@ -174,3 +174,20 @@ $sideMenuWidth: 250px;
     height: $spacing * 2;
   }
 }
+
+button {
+  border:none;
+  background: #eee;
+  height:32px;
+}
+.primary-btn {
+  background: #7D929E;
+  border: 1px solid rgba(0, 0, 0, 0.24);
+  box-shadow: 2px 2px 0 rgba(69, 59, 68, 0.62), -2px -2px 0 #ADCADE;
+  color: #fff;
+  font-size: 0.7em;
+}
+
+.primary-btn:active {
+  box-shadow: -2px -2px 0 rgba(69, 59, 68, 0.62), 2px 2px 0 #ADCADE;
+}
