@@ -1,0 +1,21 @@
+{
+  "files": {
+    "main.css": "/isometric-tileset-studio/static/css/main.ce2c3a5c.chunk.css",
+    "main.js": "/isometric-tileset-studio/static/js/main.7a4f3d81.chunk.js",
+    "main.js.map": "/isometric-tileset-studio/static/js/main.7a4f3d81.chunk.js.map",
+    "runtime-main.js": "/isometric-tileset-studio/static/js/runtime-main.b29ca86e.js",
+    "runtime-main.js.map": "/isometric-tileset-studio/static/js/runtime-main.b29ca86e.js.map",
+    "static/js/2.4cc3f44c.chunk.js": "/isometric-tileset-studio/static/js/2.4cc3f44c.chunk.js",
+    "static/js/2.4cc3f44c.chunk.js.map": "/isometric-tileset-studio/static/js/2.4cc3f44c.chunk.js.map",
+    "index.html": "/isometric-tileset-studio/index.html",
+    "static/css/main.ce2c3a5c.chunk.css.map": "/isometric-tileset-studio/static/css/main.ce2c3a5c.chunk.css.map",
+    "static/js/2.4cc3f44c.chunk.js.LICENSE.txt": "/isometric-tileset-studio/static/js/2.4cc3f44c.chunk.js.LICENSE.txt",
+    "static/media/index.css": "/isometric-tileset-studio/static/media/aseprite-font.3379c8cb.ttf"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.b29ca86e.js",
+    "static/js/2.4cc3f44c.chunk.js",
+    "static/css/main.ce2c3a5c.chunk.css",
+    "static/js/main.7a4f3d81.chunk.js"
+  ]
+}
