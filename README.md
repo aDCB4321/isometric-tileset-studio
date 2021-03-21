@@ -1,3 +1,22 @@
+# Isometric Tileset Studio
+
+Isometric TileSet Studio is a 3D-like tool for quickly prototyping isometric pixel-art worlds and tile sets.
+
+With this tool you will be able to work in an isometric grid and create mock-ups of your isometric tiles, 
+that you can later edit in your favorite pixel art editor.
+
+The expected workflow will be: you create a shape (or a composition of them) in this editor, 
+copy it and paste it in your pixel-art editor e.g. Aseprite.
+
+You will be able to compose them in multiple layers, resize, change colors, stroke, rotation, tile size, etc.
+
+If you are familiar with 3D editors, this tool will be very intuitive to use.
+
+This is a Work-in-Progress tool, with not 100% clean or optimized code, and there is no estimated 
+release date yet, but feel free to contribute! :)
+
+## React
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
